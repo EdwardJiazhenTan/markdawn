@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown Live Preview</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Markdown Live Preview</h1>
+        <p>Real-time markdown rendering</p>
+      </header>
+
+      <main>
+        <div class="editor-container">
+          <div class="input-section">
+            <h2>Markdown Input</h2>
+            <textarea id="markdown-input" placeholder="Type your markdown here...
+# Example Heading
+
+This is **bold** text and *italic* text.
+
+## Another heading
+
+Write your markdown and see it rendered in real-time!"></textarea>
+          </div>
+          
+          <div class="output-section">
+            <h2>HTML Output</h2>
+            <div id="html-output">
+              <p>Start typing markdown on the left to see the rendered output here...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-section">
+          <h2>Demo</h2>
+          <p>Click the link below to see our Markdown parser demo:</p>
+          <a href="/demo" class="demo-link">View Demo Page →</a>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const markdownInput = document.getElementById('markdown-input');
+      const htmlOutput = document.getElementById('html-output');
+      let debounceTimer;
+      let websocket = null;
+      let isConnected = false;
+
+      // Replace HTTP polling with WebSocket connection
+      function initWebSocket() {
+        // Create WebSocket connection to '/ws' endpoint
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        websocket = new WebSocket(wsUrl);
+        
+        // Handle WebSocket events:
+        websocket.onopen = handleWebSocketOpen;
+        websocket.onmessage = handleWebSocketMessage;
+        websocket.onclose = handleWebSocketClose;
+        websocket.onerror = handleWebSocketError;
+        
+        console.log('Initializing WebSocket connection to:', wsUrl);
+      }
+
+      function handleWebSocketOpen(event) {
+        // Set connection status and update UI
+        isConnected = true;
+        console.log('WebSocket connected');
+        // TODO: Maybe show connection status indicator in UI
+      }
+
+      function handleWebSocketMessage(event) {
+        // Parse incoming message and update HTML output
+        try {
+          const updateEvent = JSON.parse(event.data);
+          console.log('Received WebSocket message:', updateEvent);
+          
+          if (updateEvent.ContentUpdate) {
+            htmlOutput.innerHTML = updateEvent.ContentUpdate.html;
+          } else if (updateEvent.FileDeleted) {
+            htmlOutput.innerHTML = '<p>File was deleted</p>';
+          } else if (updateEvent.Error) {
+            htmlOutput.innerHTML = `<div class="error">Error: ${updateEvent.Error.message}</div>`;
+          }
+        } catch (e) {
+          console.error('Failed to parse WebSocket message:', e);
+        }
+      }
+
+      function handleWebSocketClose(event) {
+        // Handle disconnection and attempt reconnection
+        isConnected = false;
+        console.log('WebSocket disconnected');
+        // Reconnect after 3 seconds
+        setTimeout(() => initWebSocket(), 3000);
+      }
+
+      function handleWebSocketError(error) {
+        // Handle WebSocket errors
+        console.error('WebSocket error:', error);
+      }
+
+      function debounce(func, delay) {
+        return function(...args) {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => func.apply(this, args), delay);
+        };
+      }
+
+      // TODO: Keep HTTP fallback for manual conversion while developing
+      async function convertMarkdown(markdownText) {
+        try {
+          const response = await fetch('/api/convert', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content: markdownText }),
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            htmlOutput.innerHTML = data.html;
+          } else {
+            htmlOutput.innerHTML = `<div class="error">Error: ${data.message}</div>`;
+          }
+        } catch (error) {
+          htmlOutput.innerHTML = `<div class="error">Network error: ${error.message}</div>`;
+        }
+      }
+
+      const debouncedConvert = debounce(convertMarkdown, 300);
+
+      // TODO: Replace input event handler with WebSocket-based file watching
+      // For now, keep the textarea input handler for manual testing
+      markdownInput.addEventListener('input', (e) => {
+        const markdownText = e.target.value;
+        if (markdownText.trim()) {
+          debouncedConvert(markdownText);
+        } else {
+          htmlOutput.innerHTML = '<p>Start typing markdown to see the rendered output...</p>';
+        }
+      });
+
+      // Initialize WebSocket connection on page load
+      window.addEventListener('load', () => {
+        initWebSocket();
+        convertMarkdown(markdownInput.placeholder);
+      });
+    </script>
+  </body>
+</html>
