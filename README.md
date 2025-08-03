@@ -1,52 +1,141 @@
-# 🚀 实时Markdown渲染器
+# Real-time Markdown Renderer
 
-这是一个用Rust构建的实时markdown渲染器，类似React开发环境的热重载功能。
+A real-time markdown renderer built with Rust, featuring live preview updates similar to React development environment hot reloading.
 
-## ✨ 功能特性
+## Features
 
-- **实时预览**: 保存markdown文件后浏览器立即更新
-- **WebSocket连接**: 服务器和客户端之间的实时通信  
-- **文件监控**: 自动检测markdown文件的变化
-- **多客户端支持**: 多个浏览器窗口同步更新
+- **Live Preview**: Browser updates immediately when markdown files are saved
+- **WebSocket Communication**: Real-time bidirectional communication between server and client
+- **File Monitoring**: Automatic detection of markdown file changes with debouncing
+- **Multi-client Support**: Multiple browser windows update synchronously
+- **Auto-reconnection**: Automatic WebSocket reconnection on network issues
 
-## 🛠️ 技术栈
+## Technology Stack
 
-- **后端**: Rust + Axum + WebSocket + notify
-- **前端**: HTML + JavaScript + WebSocket API
-- **解析器**: 自定义markdown解析器
+- **Backend**: Rust + Axum + WebSocket + notify crate
+- **Frontend**: HTML + JavaScript + WebSocket API
+- **Parser**: Custom markdown parser supporting headers, paragraphs, bold, and italic text
 
-## 🚀 运行方法
+## Getting Started
 
+### Prerequisites
+
+- Rust (latest stable version)
+- Cargo package manager
+
+### Installation and Usage
+
+1. Clone the repository:
 ```bash
-# 启动服务器
-cargo run
-
-# 打开浏览器访问
-http://localhost:5000
-
-# 编辑这个文件并保存，看看浏览器是否实时更新！
+git clone https://github.com/EdwardJiazhenTan/markdawn.git
+cd markdawn
 ```
 
-## 📝 测试步骤
+2. Start the server:
+```bash
+cargo run
+```
 
-1. 启动服务器: `cargo run`
-2. 浏览器打开: `http://localhost:5000`
-3. 编辑 `test.md` 或 `README.md` 文件
-4. 保存文件
-5. 观察浏览器实时更新！
+3. Open your browser and navigate to:
+```
+http://localhost:5000
+```
 
-## 🎯 当前状态
+4. Test the live updates:
+   - Edit any `.md` file in the project directory
+   - Save the file
+   - Watch the browser update automatically
 
-✅ WebSocket服务器  
-✅ 文件监控系统  
-✅ Markdown解析器  
-✅ 实时渲染  
-✅ 前端WebSocket客户端
+## Project Structure
 
-## 🧪 测试这个功能
+```
+src/
+├── main.rs          # Main server and HTTP routes
+├── websocket.rs     # WebSocket connection management
+├── watcher.rs       # File system monitoring
+├── parser.rs        # Markdown parser implementation
+├── renderer.rs      # HTML rendering from parsed markdown
+├── events.rs        # Event type definitions
+└── data.rs          # Data structures for markdown elements
 
-**试试编辑这段文字，然后保存文件，看看浏览器会不会立即更新！**
+static/
+├── index.html       # Frontend interface
+└── style.css        # Styling
 
-时间戳: `2025-08-03` 
+test.md              # Sample markdown file for testing
+README.md            # This file
+```
 
-如果你看到这个时间戳在浏览器中更新了，说明实时渲染工作正常！🎉
+## Architecture
+
+The system follows an event-driven architecture:
+
+```
+File Change -> File Watcher -> Markdown Parser -> HTML Renderer -> WebSocket Broadcast -> Browser Update
+```
+
+### Key Components
+
+1. **File Watcher**: Monitors markdown files for changes using the `notify` crate
+2. **WebSocket Manager**: Handles multiple client connections and broadcasts updates
+3. **Markdown Parser**: Custom parser supporting basic markdown syntax
+4. **Event System**: Type-safe event handling for file changes and client updates
+
+## Supported Markdown Syntax
+
+Currently supports:
+- Headers (H1-H6): `# Header`
+- Paragraphs
+- Bold text: `**bold**`
+- Italic text: `*italic*`
+
+## Development
+
+### Building
+
+```bash
+cargo build
+```
+
+### Running Tests
+
+```bash
+cargo test
+```
+
+### Development Mode
+
+For development, you can watch a specific file:
+
+```bash
+# Edit the watcher.rs to use watch_single_file() method
+# Then run cargo run and edit your target markdown file
+```
+
+## Configuration
+
+The server runs on `localhost:5000` by default. File watching includes:
+- Debounce duration: 300ms
+- Recursive directory monitoring
+- Markdown file filtering (`.md` extension)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is open source. Feel free to use and modify as needed.
+
+## Acknowledgments
+
+Built as a Rust learning project exploring:
+- Async programming with Tokio
+- WebSocket implementation with Axum
+- File system monitoring
+- Custom parser development
+- Real-time web applications
